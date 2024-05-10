@@ -1,5 +1,9 @@
 # Fairy-Stockfish
 
+`make -j profile-build ARCH=armv7`
+`make -j profile-build ARCH=x86-64-modern`
+
+`./stockfish check variants.ini`
 ## Overview
 
 [![Build Status](https://github.com/fairy-stockfish/Fairy-Stockfish/workflows/Release/badge.svg?branch=master)](https://github.com/fairy-stockfish/Fairy-Stockfish/actions?query=workflow%3ARelease)
