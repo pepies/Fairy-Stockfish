@@ -17,6 +17,13 @@
 */
 
 #include <iostream>
+#include <sstream>
+#include <cstring>
+#include <mutex>
+#include <queue>
+#include <thread>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include "bitboard.h"
 #include "endgame.h"
@@ -34,6 +41,82 @@
 
 
 using namespace Stockfish;
+
+
+int input_pipe[2];
+int output_pipe[2];
+std::mutex output_mutex;
+
+class Redirector : public std::streambuf {
+public:
+    Redirector(std::streambuf *buf) : original(buf) {}
+    int overflow(int c) override {
+        if (c != EOF) {
+            char ch = c;
+            write(output_pipe[1], &ch, 1);
+        }
+        return original->sputc(c);
+    }
+
+private:
+    std::streambuf *original;
+};
+
+Redirector redirector(std::cout.rdbuf());
+
+extern "C" {
+    void initialize_engine(int argc, char* argv[]) {
+        std::cout.rdbuf(&redirector);
+
+        pieceMap.init();
+        variants.init();
+        CommandLine::init(argc, argv);
+        UCI::init(Options);
+        Tune::init();
+        PSQT::init(variants.find(Options["UCI_Variant"])->second);
+        Bitboards::init();
+        Position::init();
+        Bitbases::init();
+        Endgames::init();
+        Threads.set(size_t(Options["Threads"]));
+        Search::clear(); // After threads are up
+        Eval::NNUE::init();
+    }
+
+    void run_engine_loop(int argc, char* argv[]) {
+        UCI::loop(argc, argv);
+    }
+
+    void shutdown_engine() {
+        Threads.set(0);
+        variants.clear_all();
+        pieceMap.clear_all();
+        delete XBoard::stateMachine;
+    }
+
+    const char* get_output() {
+        std::lock_guard<std::mutex> lock(output_mutex);
+        static char buffer[4096];
+        int n = read(output_pipe[0], buffer, sizeof(buffer) - 1);
+        if (n > 0) {
+            buffer[n] = '\0';
+            return buffer;
+        }
+        return nullptr;
+    }
+
+    void send_command(const char* command) {
+        write(input_pipe[1], command, strlen(command));
+        write(input_pipe[1], "\n", 1);
+    }
+
+    void prepare_input_redirection() {
+        pipe(input_pipe);
+        pipe(output_pipe);
+        dup2(input_pipe[0], STDIN_FILENO);
+        fcntl(output_pipe[0], F_SETFL, O_NONBLOCK); // Set output pipe to non-blocking mode
+    }
+}
 
 int main(int argc, char* argv[]) {
 

@@ -23,7 +23,7 @@
 ifeq ($(COMP),mingw)
 EXE = stockfish.exe
 else
-EXE = stockfish
+EXE = libstockfish.so
 endif
 
 ### Installation dir definitions
@@ -327,7 +327,7 @@ endif
 ### ==========================================================================
 
 ### 3.1 Selecting compiler (default = gcc)
-CXXFLAGS += -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRACXXFLAGS)
+CXXFLAGS += -Wall -Wcast-qual -fno-exceptions -shared -fPIC -std=c++17 $(EXTRACXXFLAGS)
 DEPENDFLAGS += -std=c++17
 LDFLAGS += $(EXTRALDFLAGS)
 

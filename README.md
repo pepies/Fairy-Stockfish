@@ -2,8 +2,11 @@
 
 `./stockfish check variants.ini`
 `make -j profile-build ARCH=armv7`
+
+to build an libstockfish.so:
+`make -j profile-build ARCH=armv7 EXTRACXXFLAGS="-shared -fPIC"`
 move stockfish executable to unity/arm
-`make -j profile-build ARCH=x86-64-modern`
+`make -j profile-build ARCH=x86-64-modern EXTRACXXFLAGS="-shared -fPIC"`
 move stockfish executable to unity/x86
 copy variants.ini
 
